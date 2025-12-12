@@ -79,6 +79,7 @@ class OnPolicyRunner:
         start_it = self.current_learning_iteration
         total_it = start_it + num_learning_iterations
         for it in range(start_it, total_it):
+            self.env.unwrapped.update_iteration(self.current_learning_iteration)
             start = time.time()
             # Rollout
             with torch.inference_mode():
