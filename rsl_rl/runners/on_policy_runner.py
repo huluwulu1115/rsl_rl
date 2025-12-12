@@ -123,6 +123,9 @@ class OnPolicyRunner:
                 rnd_weight=self.alg.rnd.weight if self.alg_cfg["rnd_cfg"] else None,
             )
 
+            # Upload video files to wandb
+            self.logger.update_video_files(log_name="Video", fps=30)
+
             # Save model
             if it % self.cfg["save_interval"] == 0:
                 self.save(os.path.join(self.logger.log_dir, f"model_{it}.pt"))  # type: ignore

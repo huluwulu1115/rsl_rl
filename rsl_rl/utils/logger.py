@@ -233,6 +233,11 @@ class Logger:
         if self.writer and not self.disable_logs and self.logger_type in ["neptune", "wandb"]:
             self.writer.save_model(path, it)
 
+    def update_video_files(self, log_name: str = "Video", fps: int = 30) -> None:
+        """Check for new video files and upload them to wandb."""
+        if self.writer and not self.disable_logs and self.logger_type == "wandb":
+            self.writer.update_video_files(log_name=log_name, fps=fps)
+
     def _prepare_logging_writer(self) -> None:
         """Prepare the logging writer, which can be either Tensorboard, W&B or Neptune."""
         if self.log_dir is not None and not self.disable_logs:
