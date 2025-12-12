@@ -30,6 +30,7 @@ class ActorCritic(nn.Module):
         init_noise_std: float = 1.0,
         noise_std_type: str = "scalar",
         state_dependent_std: bool = False,
+        min_std: float = 0.0,
         **kwargs: dict[str, Any],
     ) -> None:
         if kwargs:
@@ -77,6 +78,7 @@ class ActorCritic(nn.Module):
 
         # Action noise
         self.noise_std_type = noise_std_type
+        self.min_std = min_std
         if self.state_dependent_std:
             torch.nn.init.zeros_(self.actor[-2].weight[num_actions:])
             if self.noise_std_type == "scalar":
@@ -141,6 +143,9 @@ class ActorCritic(nn.Module):
                 std = torch.exp(self.log_std).expand_as(mean)
             else:
                 raise ValueError(f"Unknown standard deviation type: {self.noise_std_type}. Should be 'scalar' or 'log'")
+        # Apply minimum std constraint
+        if self.min_std > 0:
+            std = torch.clamp(std, min=self.min_std)
         # Create distribution
         self.distribution = Normal(mean, std)
 
