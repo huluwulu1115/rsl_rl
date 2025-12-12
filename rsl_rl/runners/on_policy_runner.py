@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import statistics
 import time
 import torch
 import warnings
@@ -58,6 +59,9 @@ class OnPolicyRunner:
         )
 
         self.current_learning_iteration = 0
+
+        # Best model tracking
+        self.best_reward = float("-inf")
 
     def learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False) -> None:
         # Randomize initial episode lengths (for exploration)
@@ -127,9 +131,26 @@ class OnPolicyRunner:
             # Upload video files to wandb
             self.logger.update_video_files(log_name="Video", fps=30)
 
-            # Save model
-            if it % self.cfg["save_interval"] == 0:
-                self.save(os.path.join(self.logger.log_dir, f"model_{it}.pt"))  # type: ignore
+            # Save best model and interval checkpoints (based on mean reward)
+            if len(self.logger.rewbuffer) > 0:
+                mean_reward = statistics.mean(self.logger.rewbuffer)
+                
+                # Save best model
+                if mean_reward > self.best_reward:
+                    self.best_reward = mean_reward
+                    if self.logger.log_dir is not None and not self.logger.disable_logs:
+                        self.save(os.path.join(self.logger.log_dir, "model_best.pt"))
+                        print(f"[Runner] New best model saved! Mean reward: {mean_reward:.2f}")
+
+                # Save model at intervals (with reward in filename)
+                if it % self.cfg["save_interval"] == 0:
+                    if self.logger.log_dir is not None and not self.logger.disable_logs:
+                        self.save(os.path.join(self.logger.log_dir, f"model_{it}_{int(mean_reward)}.pt"))
+            else:
+                # No reward data yet, save without reward suffix
+                if it % self.cfg["save_interval"] == 0:
+                    if self.logger.log_dir is not None and not self.logger.disable_logs:
+                        self.save(os.path.join(self.logger.log_dir, f"model_{it}.pt"))
 
         # Save the final model after training
         if self.logger.log_dir is not None and not self.logger.disable_logs:
